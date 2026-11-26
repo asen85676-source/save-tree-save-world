@@ -1,974 +1,1486 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Go Green: Save Tree, Save World</title>
-<style>
-  :root {
-    --bg-sky: #87CEEB;
-    --ui-dark: rgba(15, 25, 35, 0.88);
-    --ui-border: rgba(255, 255, 255, 0.15);
-    --accent-green: #2ecc71;
-    --accent-gold: #f1c40f;
-    --accent-blue: #3498db;
-    --accent-red: #e74c3c;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-  body, html { width: 100%; height: 100%; overflow: hidden; background: #0f1923; color: #fff; touch-action: none; }
-  
-  #game-container { position: relative; width: 100%; height: calc(100% - 56px); overflow: hidden; }
-  canvas { display: block; width: 100%; height: 100%; }
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Go Green - Save Tree, Save World!</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    }
 
-  /* Start Screen Overlay */
-  #start-screen {
-    position: absolute; inset: 0; background: linear-gradient(135deg, #134e5e, #71b280);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 100; text-align: center; padding: 20px;
-  }
-  #start-screen h1 { font-size: 2.4rem; text-shadow: 0 4px 10px rgba(0,0,0,0.4); margin-bottom: 8px; }
-  #start-screen p { font-size: 1rem; opacity: 0.9; margin-bottom: 24px; max-width: 400px; }
-  .btn-play {
-    background: linear-gradient(180deg, #2ecc71, #27ae60); border: none; color: white; font-size: 1.3rem; font-weight: bold;
-    padding: 14px 42px; border-radius: 50px; cursor: pointer; box-shadow: 0 6px 20px rgba(46, 204, 113, 0.5);
-    transition: transform 0.15s;
-  }
-  .btn-play:active { transform: scale(0.95); }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #1b3b36;
+    }
 
-  /* Top HUD */
-  #hud-top { position: absolute; top: 8px; left: 8px; right: 8px; pointer-events: none; display: flex; flex-direction: column; gap: 6px; z-index: 10; }
-  .hud-row { display: flex; justify-content: space-between; align-items: center; gap: 6px; flex-wrap: wrap; }
-  .pill {
-    background: var(--ui-dark); border: 1px solid var(--ui-border); border-radius: 20px; padding: 5px 11px;
-    font-size: 0.82rem; font-weight: 700; display: flex; align-items: center; gap: 5px; pointer-events: auto;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-  }
-  .lv-badge { background: var(--accent-green); color: #082915; padding: 2px 8px; border-radius: 12px; font-weight: 800; }
-  
-  /* Greenery Bar */
-  .greenery-wrap { flex: 1; min-width: 140px; max-width: 210px; background: var(--ui-dark); border: 1px solid var(--ui-border); border-radius: 20px; padding: 4px 10px; }
-  .greenery-text { display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: bold; margin-bottom: 2px; }
-  .bar-bg { width: 100%; height: 6px; background: rgba(255,255,255,0.15); border-radius: 4px; overflow: hidden; }
-  .bar-fill { height: 100%; background: linear-gradient(90deg, #2ecc71, #a8ff78); width: 0%; transition: width 0.3s; }
+    /* Start Screen */
+    #start-screen {
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(145deg, #215359 0%, #3d7d63 55%, #67b26f 100%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      color: #fff;
+      z-index: 100;
+    }
 
-  /* Action Buttons */
-  .btn-action {
-    border: none; border-radius: 18px; padding: 6px 12px; font-size: 0.78rem; font-weight: 800; color: #fff; cursor: pointer;
-    pointer-events: auto; box-shadow: 0 3px 8px rgba(0,0,0,0.3); transition: transform 0.1s;
-  }
-  .btn-action:active { transform: scale(0.94); }
-  .btn-rain { background: linear-gradient(135deg, #2980b9, #3498db); }
-  .btn-bonus { background: linear-gradient(135deg, #f39c12, #e67e22); }
-  .btn-rainbow { background: linear-gradient(90deg, #ff5e62, #ff9966, #f9d423, #2ecc71, #3498db); text-shadow: 0 1px 2px rgba(0,0,0,0.6); }
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 40px;
+      font-weight: 800;
+      margin-bottom: 14px;
+      text-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+    }
 
-  /* Side Icon Menu */
-  .side-icons { display: flex; gap: 5px; pointer-events: auto; flex-wrap: wrap; }
-  .icon-btn {
-    width: 34px; height: 34px; border-radius: 50%; background: var(--ui-dark); border: 1px solid var(--ui-border);
-    color: #fff; font-size: 1rem; display: flex; align-items: center; justify-content: center; cursor: pointer;
-  }
+    .subtitle {
+      max-width: 340px;
+      font-size: 16px;
+      line-height: 1.45;
+      color: #e6f7ec;
+      margin-bottom: 20px;
+    }
 
-  /* Quest & Boss Bar */
-  .quest-banner {
-    align-self: flex-start; background: var(--ui-dark); border: 1px solid var(--ui-border);
-    padding: 4px 12px; border-radius: 14px; font-size: 0.78rem; font-weight: 600;
-  }
-  #boss-hud {
-    display: none; align-self: center; width: 92%; max-width: 340px; background: rgba(45, 10, 10, 0.92);
-    border: 1.5px solid #e74c3c; border-radius: 12px; padding: 6px 12px; text-align: center; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-  }
-  #boss-name { font-size: 0.82rem; font-weight: 800; color: #ff7675; margin-bottom: 4px; }
-  .boss-bar-bg { width: 100%; height: 9px; background: #2d0a0a; border-radius: 5px; overflow: hidden; }
-  #boss-hp-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #ff416c, #ff4b2b); transition: width 0.2s; }
+    #saved-badge {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 8px 18px;
+      border-radius: 20px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: #ffd54f;
+      margin-bottom: 20px;
+      display: none;
+    }
 
-  /* Bottom HUD */
-  #hud-bottom {
-    position: absolute; bottom: 12px; left: 12px; right: 12px; display: flex; justify-content: space-between; align-items: flex-end;
-    pointer-events: none; z-index: 10;
-  }
-  .bottom-left { display: flex; flex-direction: column; gap: 6px; pointer-events: auto; }
-  .speed-controls { display: flex; gap: 6px; }
-  .speed-btn {
-    background: var(--ui-dark); border: 1px solid var(--ui-border); color: #fff; padding: 5px 9px; border-radius: 12px;
-    font-size: 0.74rem; font-weight: 700; cursor: pointer;
-  }
-  .water-box {
-    background: var(--ui-dark); border: 1px solid var(--ui-border); border-radius: 14px; padding: 7px 12px; width: 165px;
-  }
-  .water-label { font-size: 0.78rem; font-weight: 700; margin-bottom: 4px; display: flex; justify-content: space-between; }
-  .water-bar-bg { width: 100%; height: 8px; background: rgba(255,255,255,0.15); border-radius: 5px; overflow: hidden; }
-  #water-fill { width: 100%; height: 100%; background: linear-gradient(90deg, #00c6ff, #0072ff); transition: width 0.15s; }
+    .btn-play {
+      background: #27c258;
+      color: #fff;
+      border: none;
+      padding: 16px 46px;
+      font-size: 20px;
+      font-weight: 800;
+      border-radius: 50px;
+      box-shadow: 0 8px 24px rgba(39, 194, 88, 0.45);
+      cursor: pointer;
+      transition: transform 0.15s;
+    }
 
-  /* Virtual Joystick */
-  #joystick-zone {
-    width: 110px; height: 110px; border-radius: 50%; background: rgba(255, 255, 255, 0.14);
-    border: 2px solid rgba(255, 255, 255, 0.28); position: relative; pointer-events: auto; touch-action: none;
-  }
-  #joystick-knob {
-    width: 44px; height: 44px; border-radius: 50%; background: radial-gradient(circle at 30% 30%, #4b6584, #1e272e);
-    border: 2px solid rgba(255,255,255,0.5); position: absolute; top: 31px; left: 31px; pointer-events: none;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.5);
-  }
+    .btn-play:active {
+      transform: scale(0.95);
+    }
 
-  /* Modals & Popups */
-  .modal-overlay {
-    position: absolute; inset: 0; background: rgba(0,0,0,0.78); display: none; align-items: center; justify-content: center;
-    z-index: 50; padding: 12px;
-  }
-  .modal-card {
-    background: #182635; border: 1px solid rgba(255,255,255,0.2); border-radius: 18px; width: 100%; max-width: 350px;
-    padding: 16px; text-align: center; box-shadow: 0 10px 30px rgba(0,0,0,0.6); max-height: 92vh; overflow-y: auto;
-  }
-  .modal-card h2 { font-size: 1.25rem; margin-bottom: 6px; color: #2ecc71; }
-  .modal-close {
-    margin-top: 12px; background: #e74c3c; border: none; color: #fff; padding: 8px 20px; border-radius: 12px;
-    font-weight: bold; cursor: pointer;
-  }
-  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
-  .item-card {
-    background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 10px;
-    cursor: pointer; font-size: 0.82rem;
-  }
-  .item-card.active { border-color: #2ecc71; background: rgba(46, 204, 113, 0.18); }
+    .btn-wa-start {
+      margin-top: 16px;
+      background: rgba(255, 255, 255, 0.16);
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      padding: 10px 22px;
+      border-radius: 30px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
 
-  /* 300x250 Popup Ad Container */
-  #popup-ad-box {
-    margin: 10px auto;
-    width: 300px;
-    height: 250px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(10, 16, 23, 0.85);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-    overflow: hidden;
-  }
+    .btn-reset {
+      margin-top: 14px;
+      background: transparent;
+      border: none;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 12px;
+      text-decoration: underline;
+      cursor: pointer;
+      display: none;
+    }
 
-  /* Adsterra 320x50 Safe Bottom Slot */
-  #ad-banner-slot {
-    position: fixed; bottom: 0; left: 0; width: 100%; height: 56px; background: #0a1017;
-    border-top: 1px solid rgba(255,255,255,0.12); display: flex; align-items: center; justify-content: center; z-index: 90;
-  }
-  textarea { width: 100%; height: 70px; background: #0f1923; color: #2ecc71; border: 1px solid #34495e; border-radius: 8px; padding: 8px; font-size: 0.75rem; margin-top: 8px; }
-</style>
+    /* Game Container */
+    #game-container {
+      position: relative;
+      width: 100%;
+      height: calc(100% - 54px);
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Top HUD */
+    #hud-top {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .hud-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+
+    .icon-group {
+      display: flex;
+      gap: 6px;
+      pointer-events: auto;
+    }
+
+    .circle-btn {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #1f2e3d;
+      border: 2px solid #354b61;
+      color: #fff;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+    }
+
+    .pill {
+      background: #1f2e3d;
+      border: 2px solid #354b61;
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.2);
+      pointer-events: auto;
+    }
+
+    .pill-lv {
+      background: #1c3d2e;
+      border-color: #2ecc71;
+      color: #4ef08b;
+    }
+
+    /* Greenery Bar */
+    .greenery-wrap {
+      flex: 1;
+      min-width: 155px;
+      background: #1f2e3d;
+      border: 2px solid #354b61;
+      border-radius: 20px;
+      padding: 4px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .greenery-text {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .bar-bg {
+      width: 100%;
+      height: 6px;
+      background: #101921;
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #f1c40f, #2ecc71);
+      transition: width 0.2s;
+    }
+
+    /* Rain Button */
+    .btn-rain {
+      background: linear-gradient(180deg, #38a3ff, #1976d2);
+      border: 2px solid #7cc4ff;
+      color: #fff;
+      padding: 7px 14px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      pointer-events: auto;
+      box-shadow: 0 4px 10px rgba(25, 118, 210, 0.4);
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-rain.active {
+      background: linear-gradient(180deg, #f39c12, #d35400);
+      border-color: #ffe082;
+    }
+
+    .quest-bar {
+      background: rgba(25, 38, 51, 0.92);
+      border: 1.5px solid #3b5268;
+      color: #ecf0f1;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12.5px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    #fire-alert {
+      display: none;
+      background: linear-gradient(90deg, #e74c3c, #c0392b);
+      border: 2px solid #ff9ff3;
+      color: #fff;
+      padding: 7px 16px;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 800;
+      align-self: center;
+      box-shadow: 0 4px 15px rgba(231, 76, 60, 0.6);
+      animation: pulse 0.8s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(1); }
+      to { transform: scale(1.06); }
+    }
+
+    /* Bottom HUD & Joystick */
+    #hud-bottom {
+      position: absolute;
+      bottom: 14px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    .water-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stats-mini {
+      display: flex;
+      gap: 6px;
+    }
+
+    .water-box {
+      background: #1f2e3d;
+      border: 2px solid #354b61;
+      border-radius: 16px;
+      padding: 8px 12px;
+      width: 175px;
+      color: #fff;
+    }
+
+    .water-label {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 700;
+      margin-bottom: 5px;
+    }
+
+    .water-bar-fill {
+      height: 100%;
+      width: 100%;
+      background: #29b6f6;
+      transition: width 0.1s;
+    }
+
+    /* Virtual Joystick */
+    #joystick-zone {
+      width: 110px;
+      height: 110px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.18);
+      border: 2px solid rgba(255, 255, 255, 0.35);
+      position: relative;
+      pointer-events: auto;
+      touch-action: none;
+    }
+
+    #joystick-knob {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #cfd8dc);
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      position: absolute;
+      top: 30px;
+      left: 30px;
+      pointer-events: none;
+    }
+
+    /* Level Complete Modal */
+    #level-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 18, 26, 0.82);
+      z-index: 90;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+
+    .modal-card {
+      background: #1b2836;
+      border: 2px solid #34495e;
+      border-radius: 24px;
+      width: 100%;
+      max-width: 350px;
+      padding: 20px 16px;
+      text-align: center;
+      color: #fff;
+      box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6);
+    }
+
+    .modal-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #2ecc71;
+      margin-bottom: 6px;
+    }
+
+    .modal-reward {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f1c40f;
+      margin-bottom: 12px;
+    }
+
+    .ad-box-300 {
+      width: 300px;
+      height: 250px;
+      margin: 0 auto 14px auto;
+      background: #111922;
+      border-radius: 12px;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #2c3e50;
+    }
+
+    .btn-next-lv {
+      width: 100%;
+      background: #27c258;
+      color: #fff;
+      border: none;
+      padding: 14px;
+      border-radius: 50px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      box-shadow: 0 6px 18px rgba(39, 194, 88, 0.45);
+      margin-bottom: 10px;
+    }
+
+    .btn-wa-modal {
+      width: 100%;
+      background: #128c7e;
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 50px;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+
+    /* Bottom 320x50 Ad Bar */
+    #bottom-ad-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 54px;
+      background: #0f171e;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 110;
+      border-top: 1px solid #263849;
+    }
+  </style>
 </head>
 <body>
 
-<div id="game-container">
-  <!-- Start Screen -->
+  <!-- START SCREEN -->
   <div id="start-screen">
-    <h1>🌍 Go Green</h1>
-    <p>Save Tree, Save World! Water trees, harvest golden apples, defeat Drought Bosses & restore the island.</p>
-    <button class="btn-play" id="btn-start-game">▶ PLAY NOW</button>
+    <div class="logo-row">🌍 <span>Go Green</span></div>
+    <p class="subtitle">
+      Save Tree, Save World! Water trees, harvest golden apples, extinguish fires &amp; restore the barren island into lush greenery.
+    </p>
+    <div id="saved-badge"></div>
+    <button class="btn-play" id="start-btn" onclick="startGame()">▶ PLAY NOW</button>
+    <button class="btn-wa-start" onclick="shareWhatsApp()">📲 Share on WhatsApp</button>
+    <button class="btn-reset" id="reset-btn" onclick="resetProgress()">Reset Saved Progress</button>
   </div>
 
-  <!-- Top HUD -->
-  <div id="hud-top">
-    <div class="hud-row">
-      <div class="side-icons">
-        <button class="icon-btn" id="btn-mute" title="Sound">🔊</button>
-        <button class="icon-btn" id="btn-themes" title="Themes">🏝️</button>
-        <button class="icon-btn" id="btn-pets" title="Pets & Skins">🦊</button>
-        <button class="icon-btn" id="btn-spin" title="Lucky Spin">🎡</button>
-        <button class="icon-btn" id="btn-box" title="Mystery Box">🎁</button>
-        <button class="icon-btn" id="btn-rank" title="Leaderboard & Save">🏆</button>
+  <!-- GAME AREA -->
+  <div id="game-container">
+    <canvas id="gameCanvas"></canvas>
+
+    <!-- TOP HUD -->
+    <div id="hud-top">
+      <div class="hud-row">
+        <div class="icon-group">
+          <button class="circle-btn" id="sound-btn" onclick="toggleSound()">🔊</button>
+          <button class="circle-btn" onclick="shareWhatsApp()" title="Share">📲</button>
+        </div>
+        <div class="pill pill-lv" id="lv-badge">Lv.1</div>
+        <div class="pill">🪙 <span id="coins-txt">25</span></div>
+        <div class="pill">🍎 <span id="apples-txt">0 / 8</span></div>
       </div>
-      <div style="display:flex; gap:5px; align-items:center;">
-        <div class="pill"><span class="lv-badge" id="hud-level">Lv.1</span></div>
-        <div class="pill">🪙 <span id="hud-coins">50</span></div>
-        <div class="pill">🍎 <span id="hud-apples">0</span>/<span id="hud-target">8</span></div>
+
+      <div class="hud-row">
+        <div class="greenery-wrap">
+          <div class="greenery-text">
+            <span>🌍 Greenery</span>
+            <span id="greenery-pct">0%</span>
+          </div>
+          <div class="bar-bg">
+            <div class="bar-fill" id="greenery-bar"></div>
+          </div>
+        </div>
+
+        <button class="btn-rain" id="rain-btn" onclick="triggerRain()">
+          🌧️ Call Rain (2x)
+        </button>
       </div>
+
+      <div class="quest-bar" id="quest-txt">
+        📋 Quest: Grow &amp; Sell Apples (0/8) • Total Sold: 0
+      </div>
+
+      <div id="fire-alert">🔥 FIRE! Spray Water!</div>
     </div>
 
-    <div class="hud-row">
-      <div class="greenery-wrap">
-        <div class="greenery-text"><span>🌍 Greenery</span><span id="hud-green-pct">0%</span></div>
-        <div class="bar-bg"><div class="bar-fill" id="hud-green-bar"></div></div>
+    <div id="hud-bottom">
+      <div class="water-panel">
+        <div class="stats-mini">
+          <div class="pill" style="font-size:11px; padding:4px 9px;">🏃 Move: <span id="spd-mult">1.0x</span></div>
+          <div class="pill" style="font-size:11px; padding:4px 9px;">🌱 Growth: <span id="rain-mult">1x</span></div>
+        </div>
+        <div class="water-box">
+          <div class="water-label">
+            <span>💧 Water</span>
+            <span id="water-txt">100/100</span>
+          </div>
+          <div class="bar-bg">
+            <div class="water-bar-fill" id="water-bar"></div>
+          </div>
+        </div>
       </div>
-      <div style="display:flex; gap:5px; flex-wrap:wrap;">
-        <button class="btn-action btn-rain" id="btn-rain">🌧️ Call Rain (2x)</button>
-        <button class="btn-action btn-bonus" id="btn-free-bonus">🎁 +50</button>
-        <button class="btn-action btn-rainbow" id="btn-rainbow" style="display:none;">🌈 Rainbow</button>
+
+      <div id="joystick-zone">
+        <div id="joystick-knob"></div>
       </div>
-    </div>
-
-    <div class="quest-banner" id="hud-quest">📋 Quest: Grow & Sell Apples (0/8) • Sold: 0</div>
-
-    <div id="boss-hud">
-      <div id="boss-name">🐉 Giant Drought Dragon</div>
-      <div class="boss-bar-bg"><div id="boss-hp-fill"></div></div>
     </div>
   </div>
 
-  <canvas id="gameCanvas"></canvas>
-
-  <!-- Bottom HUD -->
-  <div id="hud-bottom">
-    <div class="bottom-left">
-      <div class="speed-controls">
-        <button class="speed-btn" id="btn-move-spd">🏃 Move: 1x</button>
-        <button class="speed-btn" id="btn-grow-spd">🌱 Growth: 1x</button>
-      </div>
-      <div class="water-box">
-        <div class="water-label"><span>💧 Water</span><span id="hud-water-txt">100/100</span></div>
-        <div class="water-bar-bg"><div id="water-fill"></div></div>
-      </div>
-    </div>
-    <div id="joystick-zone"><div id="joystick-knob"></div></div>
-  </div>
-
-  <!-- Next Level In-Game Popup with 300x250 Adsterra Banner -->
-  <div class="modal-overlay" id="modal-next-level">
+  <!-- LEVEL COMPLETE MODAL -->
+  <div id="level-modal">
     <div class="modal-card">
-      <h2>🎉 Level Complete!</h2>
-      <p style="font-size:0.85rem; margin-bottom:4px;">Reward: <b>+50 Bonus Coins</b> 🪙</p>
-      <p id="prep-status" style="font-size:0.82rem; color:#f1c40f;">Preparing Level... (3s)</p>
-      <div id="popup-ad-box"></div>
-      <button class="btn-play" id="btn-continue-level" style="display:none; font-size:0.95rem; padding:11px 24px; margin-top:4px;">
-        CONTINUE TO LEVEL 2 ▶
-      </button>
+      <div class="modal-title">🎉 Level Complete!</div>
+      <div class="modal-reward" id="modal-reward-txt">Reward: +50 Bonus Coins 🪙</div>
+
+      <div class="ad-box-300" id="ad-300-container">
+        <script>
+          atOptions = {
+            'key' : 'b28811515037cabf319811d838e46eee',
+            'format' : 'iframe',
+            'height' : 250,
+            'width' : 300,
+            'params' : {}
+          };
+        </script>
+        <script data-cfasync="false" src="https://bauval.org/22/b28811515037cabf319811d838e46eee"></script>
+      </div>
+
+      <button class="btn-next-lv" id="next-lv-btn" onclick="nextLevel()">CONTINUE TO LEVEL 2 ▶</button>
+      <button class="btn-wa-modal" onclick="shareWhatsApp()">📲 Challenge Friends on WhatsApp</button>
     </div>
   </div>
 
-  <!-- General Feature Modal -->
-  <div class="modal-overlay" id="modal-feature">
-    <div class="modal-card">
-      <h2 id="modal-title">Title</h2>
-      <div id="modal-body"></div>
-      <button class="modal-close" onclick="closeFeatureModal()">Close</button>
-    </div>
+  <!-- BOTTOM 320x50 AD BAR -->
+  <div id="bottom-ad-bar">
+    <script>
+      atOptions = {
+        'key' : '61ec69ce148b53352c086dfebe89caa8',
+        'format' : 'iframe',
+        'height' : 50,
+        'width' : 320,
+        'params' : {}
+      };
+    </script>
+    <script data-cfasync="false" src="https://bauval.org/22/61ec69ce148b53352c086dfebe89caa8"></script>
   </div>
-</div>
 
-<!-- Bottom 320x50 Adsterra Banner -->
-<div id="ad-banner-slot">
   <script>
-    atOptions = {
-      'key' : '61ec69ce148b53352c086dfebe89caa8',
-      'format' : 'iframe',
-      'height' : 50,
-      'width' : 320,
-      'params' : {}
+    const SMART_LINK_URL = "https://asiafilm.org/4/1661a51a1d9c3fefe264d981ac80e031";
+    const SAVE_KEY = "go_green_save_v1";
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let W = 0, H = 0;
+    function resize() {
+      const rect = document.getElementById('game-container').getBoundingClientRect();
+      W = canvas.width = rect.width;
+      H = canvas.height = rect.height;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    // Game State
+    let gameStarted = false;
+    let levelPaused = false;
+    let soundOn = true;
+
+    let level = 1;
+    let coins = 25;
+    let applesCarried = 0;
+    let applesSoldLevel = 0;
+    let applesTarget = 8;
+    let totalSoldAllTime = 0;
+
+    let rainTimer = 0;
+    let fireTimer = 18;
+
+    // Player
+    const player = {
+      x: 0,
+      y: 0,
+      radius: 14,
+      baseSpeed: 155,
+      water: 100,
+      maxWater: 100
     };
-  </script>
-  <script data-cfasync="false" src="https://bauval.org/22/61ec69ce148b53352c086dfebe89caa8"></script>
-</div>
 
-<script>
-/* ================= POPUP 300x250 ADSTERRA LOADER ================= */
-function loadPopupAd() {
-  const box = document.getElementById('popup-ad-box');
-  box.innerHTML = '';
-  const ifr = document.createElement('iframe');
-  ifr.width = '300';
-  ifr.height = '250';
-  ifr.frameBorder = '0';
-  ifr.scrolling = 'no';
-  ifr.style.border = 'none';
-  ifr.style.overflow = 'hidden';
-  box.appendChild(ifr);
+    // Upgrades
+    const upgrades = {
+      tank: { lv: 1, cost: 25, label: 'Tank', icon: '🛢️' },
+      speed: { lv: 1, cost: 30, label: 'Speed', icon: '⚡' },
+      sprinkler: { lv: 0, cost: 40, label: 'Sprinkler', icon: '💦' },
+      drone: { lv: 0, cost: 60, label: 'Drone', icon: '🛸' }
+    };
 
-  const doc = ifr.contentWindow.document;
-  doc.open();
-  doc.write(`
-    <!DOCTYPE html>
-    <html>
-    <head><style>body{margin:0;padding:0;background:transparent;display:flex;justify-content:center;align-items:center;}</style></head>
-    <body>
-      <script>
-        atOptions = {
-          'key' : 'b28811515037cabf319811d838e46eee',
-          'format' : 'iframe',
-          'height' : 250,
-          'width' : 300,
-          'params' : {}
+    // Save & Load System (LocalStorage)
+    function saveGame() {
+      try {
+        const data = {
+          level,
+          coins,
+          totalSoldAllTime,
+          maxWater: player.maxWater,
+          upgrades: {
+            tank: { lv: upgrades.tank.lv, cost: upgrades.tank.cost },
+            speed: { lv: upgrades.speed.lv, cost: upgrades.speed.cost },
+            sprinkler: { lv: upgrades.sprinkler.lv, cost: upgrades.sprinkler.cost },
+            drone: { lv: upgrades.drone.lv, cost: upgrades.drone.cost }
+          }
         };
-      <\/script>
-      <script data-cfasync="false" src="https://bauval.org/22/b28811515037cabf319811d838e46eee"><\/script>
-    </body>
-    </html>
-  `);
-  doc.close();
-}
-
-/* ================= WEB AUDIO API SOUND ENGINE (v5) ================= */
-const AudioEngine = {
-  ctx: null, muted: false,
-  init() { if (!this.ctx) this.ctx = new (window.AudioContext || window.webkitAudioContext)(); },
-  play(type) {
-    if (this.muted) return;
-    this.init();
-    if (this.ctx.state === 'suspended') this.ctx.resume();
-    const now = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.connect(gain); gain.connect(this.ctx.destination);
-
-    if (type === 'water') {
-      osc.type = 'sine'; osc.frequency.setValueAtTime(520, now); osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-      gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-      osc.start(now); osc.stop(now + 0.12);
-    } else if (type === 'coin') {
-      osc.type = 'triangle'; osc.frequency.setValueAtTime(980, now); osc.frequency.setValueAtTime(1318, now + 0.08);
-      gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
-      osc.start(now); osc.stop(now + 0.25);
-    } else if (type === 'plant') {
-      osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(600, now + 0.18);
-      gain.gain.setValueAtTime(0.18, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
-      osc.start(now); osc.stop(now + 0.18);
-    } else if (type === 'fire') {
-      osc.type = 'sawtooth'; osc.frequency.setValueAtTime(220, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
-      gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-      osc.start(now); osc.stop(now + 0.2);
-    } else if (type === 'win') {
-      [523, 659, 784, 1046].forEach((f, i) => {
-        const o = this.ctx.createOscillator(), g = this.ctx.createGain();
-        o.connect(g); g.connect(this.ctx.destination);
-        o.type = 'triangle'; o.frequency.setValueAtTime(f, now + i * 0.1);
-        g.gain.setValueAtTime(0.2, now + i * 0.1); g.gain.exponentialRampToValueAtTime(0.01, now + i * 0.1 + 0.3);
-        o.start(now + i * 0.1); o.stop(now + i * 0.1 + 0.3);
-      });
+        localStorage.setItem(SAVE_KEY, JSON.stringify(data));
+      } catch (e) {}
     }
-  }
-};
 
-/* ================= GAME STATE & CONFIG ================= */
-const SMARTLINK_RAIN = "https://asiafilm.org/4/1661a51a1d9c3fefe264d981ac80e031";
-
-const THEMES = {
-  meadow:   { name: "🌿 Meadow",   sky: "#7ec8e3", island: "#6ab04c", rim: "#487eb0", sand: "#f6e58d" },
-  desert:   { name: "🏜️ Desert",   sky: "#f7d794", island: "#e1b12c", rim: "#c23616", sand: "#f5cd79" },
-  snow:     { name: "❄️ Snow",     sky: "#dff9fb", island: "#c7ecee", rim: "#686de0", sand: "#95afc0" },
-  volcanic: { name: "🌋 Volcanic", sky: "#574b90", island: "#596275", rim: "#eb4d4b", sand: "#303952" }
-};
-
-let state = {
-  level: 1, coins: 50, applesSold: 0, totalSold: 0,
-  water: 100, maxWater: 100,
-  speedLv: 1, tankLv: 1, sprinkLv: 0, droneLv: 0,
-  moveMult: 1, growMult: 1,
-  rainTimer: 0, rainbowTimer: 0, bonusCooldown: 0,
-  theme: 'meadow', pet: 'none', skin: 'ranger',
-  streak: 1, lastSpin: 0,
-  boss: { active: false, name: "Giant Drought Dragon", hp: 100, maxHp: 100 }
-};
-
-try {
-  const saved = localStorage.getItem('gogreen_save_v12');
-  if (saved) Object.assign(state, JSON.parse(saved));
-} catch(e) {}
-
-function saveGame() {
-  try { localStorage.setItem('gogreen_save_v12', JSON.stringify(state)); } catch(e) {}
-}
-
-/* ================= CANVAS & ENTITIES ================= */
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-let W, H, CX, CY;
-
-function resize() {
-  W = canvas.width = canvas.parentElement.clientWidth;
-  H = canvas.height = canvas.parentElement.clientHeight;
-  CX = W / 2; CY = H / 2 + 15;
-}
-window.addEventListener('resize', resize);
-resize();
-
-const player = { x: 0, y: 50, apples: 0, vx: 0, vy: 0 };
-const drone = { x: 0, y: -40, angle: 0 };
-
-const trees = [];
-const spotOffsets = [
-  [-115, -55], [-40, -70], [40, -70], [115, -55],
-  [-115, 25],  [-40, 35],  [40, 35],  [115, 25]
-];
-spotOffsets.forEach((pos, idx) => {
-  trees.push({
-    id: idx, x: pos[0], y: pos[1],
-    growth: 0, hasApple: false, isGolden: idx === 0 || idx === 3,
-    onFire: false, fireTimer: 0
-  });
-});
-
-const stations = {
-  well:   { x: -125, y: 105, r: 34, label: "💧 Water Well" },
-  market: { x: 125,  y: 105, r: 34, label: "🏪 Eco-Market" }
-};
-
-const pads = [
-  { id: 'tank',   x: -105, y: -15, label: "🛢️ Tank",   baseCost: 25 },
-  { id: 'speed',  x: -35,  y: -15, label: "⚡ Speed",  baseCost: 30 },
-  { id: 'sprink', x: 35,   y: -15, label: "💦 Sprink", baseCost: 40 },
-  { id: 'drone',  x: 105,  y: -15, label: "🛸 Drone",  baseCost: 60 }
-];
-
-let particles = [];
-let floatingTexts = [];
-let padCooldown = 0;
-
-function spawnText(txt, x, y, color = "#fff") {
-  floatingTexts.push({ txt, x, y, color, life: 1.0 });
-}
-function spawnParticles(x, y, color, count = 8) {
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x, y, vx: (Math.random() - 0.5) * 4, vy: (Math.random() - 1) * 4,
-      color, life: 0.7
-    });
-  }
-}
-
-/* ================= JOYSTICK & KEYBOARD CONTROLS ================= */
-const joyZone = document.getElementById('joystick-zone');
-const joyKnob = document.getElementById('joystick-knob');
-let joyActive = false, joyVec = { x: 0, y: 0 };
-
-function handleJoy(clientX, clientY) {
-  const rect = joyZone.getBoundingClientRect();
-  const centerX = rect.left + rect.width / 2;
-  const centerY = rect.top + rect.height / 2;
-  let dx = clientX - centerX, dy = clientY - centerY;
-  const maxDist = 35;
-  const dist = Math.hypot(dx, dy);
-  if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
-  joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-  joyVec.x = dx / maxDist; joyVec.y = dy / maxDist;
-}
-
-joyZone.addEventListener('pointerdown', e => { joyActive = true; handleJoy(e.clientX, e.clientY); });
-window.addEventListener('pointermove', e => { if (joyActive) handleJoy(e.clientX, e.clientY); });
-window.addEventListener('pointerup', () => { joyActive = false; joyVec = { x: 0, y: 0 }; joyKnob.style.transform = 'translate(0,0)'; });
-
-const keys = {};
-window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
-window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
-
-/* ================= LEVEL & BOSS MANAGEMENT ================= */
-function getLevelTarget() { return 6 + state.level * 2; }
-
-function setupLevel() {
-  state.applesSold = 0;
-  trees.forEach(t => { t.growth = 0; t.hasApple = false; t.onFire = false; });
-  if (state.level % 3 === 0) {
-    state.boss.active = true;
-    state.boss.name = state.level % 6 === 0 ? "🔥 Fire Titan" : "🐉 Giant Drought Dragon";
-    state.boss.maxHp = 100 + state.level * 25;
-    state.boss.hp = state.boss.maxHp;
-    document.getElementById('boss-hud').style.display = 'block';
-    document.getElementById('boss-name').innerText = state.boss.name;
-  } else {
-    state.boss.active = false;
-    document.getElementById('boss-hud').style.display = 'none';
-  }
-  updateHUD();
-}
-
-function triggerLevelComplete() {
-  AudioEngine.play('win');
-  state.coins += 50;
-  saveGame();
-
-  const modal = document.getElementById('modal-next-level');
-  const statusTxt = document.getElementById('prep-status');
-  const contBtn = document.getElementById('btn-continue-level');
-  modal.style.display = 'flex';
-  contBtn.style.display = 'none';
-
-  // Load 300x250 Adsterra banner cleanly inside isolated iframe
-  loadPopupAd();
-
-  let sec = 3;
-  statusTxt.innerText = `Preparing Level ${state.level + 1}... (${sec}s)`;
-  const timer = setInterval(() => {
-    sec--;
-    if (sec > 0) {
-      statusTxt.innerText = `Preparing Level ${state.level + 1}... (${sec}s)`;
-    } else {
-      clearInterval(timer);
-      statusTxt.innerText = "Ready!";
-      contBtn.innerText = `CONTINUE TO LEVEL ${state.level + 1} ▶`;
-      contBtn.style.display = 'inline-block';
-    }
-  }, 1000);
-}
-
-document.getElementById('btn-continue-level').onclick = () => {
-  document.getElementById('modal-next-level').style.display = 'none';
-  document.getElementById('popup-ad-box').innerHTML = '';
-  state.level++;
-  setupLevel();
-  saveGame();
-};
-
-/* ================= GAMEPLAY UPDATE LOOP ================= */
-let lastTime = performance.now();
-let fireSpawnTimer = 6;
-
-function update(dt) {
-  if (padCooldown > 0) padCooldown -= dt;
-  if (state.rainTimer > 0) state.rainTimer -= dt;
-  if (state.rainbowTimer > 0) state.rainbowTimer -= dt;
-  if (state.bonusCooldown > 0) {
-    state.bonusCooldown -= dt;
-    document.getElementById('btn-free-bonus').innerText = `⏳ ${Math.ceil(state.bonusCooldown)}s`;
-  } else {
-    document.getElementById('btn-free-bonus').innerText = `🎁 +50`;
-  }
-
-  let ix = joyVec.x, iy = joyVec.y;
-  if (keys['w'] || keys['arrowup']) iy -= 1;
-  if (keys['s'] || keys['arrowdown']) iy += 1;
-  if (keys['a'] || keys['arrowleft']) ix -= 1;
-  if (keys['d'] || keys['arrowright']) ix += 1;
-  const len = Math.hypot(ix, iy);
-  if (len > 1) { ix /= len; iy /= len; }
-
-  const baseSpeed = 135 + (state.speedLv - 1) * 18;
-  const petBoost = state.pet === 'fox' ? 1.15 : 1;
-  player.x += ix * baseSpeed * state.moveMult * petBoost * dt;
-  player.y += iy * baseSpeed * state.moveMult * petBoost * dt;
-
-  const normX = player.x / 165, normY = (player.y - 15) / 115;
-  const distFromCenter = Math.hypot(normX, normY);
-  if (distFromCenter > 1) {
-    player.x = (normX / distFromCenter) * 165;
-    player.y = (normY / distFromCenter) * 115 + 15;
-  }
-
-  if (Math.hypot(player.x - stations.well.x, player.y - stations.well.y) < 42) {
-    if (state.water < state.maxWater) {
-      state.water = Math.min(state.maxWater, state.water + 90 * dt);
-      if (Math.random() < 0.2) AudioEngine.play('water');
-    }
-  }
-
-  if (Math.hypot(player.x - stations.market.x, player.y - stations.market.y) < 42 && player.apples > 0) {
-    const sold = player.apples;
-    player.apples = 0;
-    const coinGain = sold * (state.rainbowTimer > 0 ? 20 : 10);
-    state.coins += coinGain;
-    state.applesSold += sold;
-    state.totalSold += sold;
-    AudioEngine.play('coin');
-    spawnText(`+${coinGain} 🪙`, stations.market.x, stations.market.y - 25, "#f1c40f");
-    spawnParticles(stations.market.x, stations.market.y, "#f1c40f", 10);
-
-    if (state.boss.active) {
-      state.boss.hp = Math.max(0, state.boss.hp - sold * 25);
-      if (state.boss.hp <= 0) {
-        state.boss.active = false;
-        state.coins += 100;
-        spawnText("BOSS DEFEATED! +100 🪙", 0, -60, "#2ecc71");
-        document.getElementById('boss-hud').style.display = 'none';
+    function loadGame() {
+      try {
+        const raw = localStorage.getItem(SAVE_KEY);
+        if (!raw) return false;
+        const data = JSON.parse(raw);
+        level = data.level || 1;
+        coins = typeof data.coins === 'number' ? data.coins : 25;
+        totalSoldAllTime = data.totalSoldAllTime || 0;
+        player.maxWater = data.maxWater || 100;
+        if (data.upgrades) {
+          for (const k of ['tank', 'speed', 'sprinkler', 'drone']) {
+            if (data.upgrades[k]) {
+              upgrades[k].lv = data.upgrades[k].lv;
+              upgrades[k].cost = data.upgrades[k].cost;
+            }
+          }
+        }
+        return true;
+      } catch (e) {
+        return false;
       }
     }
 
-    if (state.applesSold >= getLevelTarget() && !state.boss.active) {
-      triggerLevelComplete();
+    function resetProgress() {
+      localStorage.removeItem(SAVE_KEY);
+      level = 1;
+      coins = 25;
+      totalSoldAllTime = 0;
+      player.maxWater = 100;
+      upgrades.tank = { lv: 1, cost: 25, label: 'Tank', icon: '🛢️' };
+      upgrades.speed = { lv: 1, cost: 30, label: 'Speed', icon: '⚡' };
+      upgrades.sprinkler = { lv: 0, cost: 40, label: 'Sprinkler', icon: '💦' };
+      upgrades.drone = { lv: 0, cost: 60, label: 'Drone', icon: '🛸' };
+      document.getElementById('saved-badge').style.display = 'none';
+      document.getElementById('reset-btn').style.display = 'none';
+      document.getElementById('start-btn').textContent = '▶ PLAY NOW';
     }
-    saveGame();
-  }
 
-  pads.forEach(p => {
-    const lv = state[p.id + 'Lv'];
-    const cost = Math.floor(p.baseCost * Math.pow(1.45, lv));
-    if (Math.hypot(player.x - p.x, player.y - p.y) < 26 && padCooldown <= 0 && state.coins >= cost) {
-      state.coins -= cost;
-      state[p.id + 'Lv']++;
-      if (p.id === 'tank') { state.maxWater += 40; state.water = state.maxWater; }
-      padCooldown = 0.6;
-      AudioEngine.play('coin');
-      spawnText(`${p.label} Lv.${state[p.id + 'Lv']}!`, p.x, p.y - 20, "#2ecc71");
+    if (loadGame()) {
+      const badge = document.getElementById('saved-badge');
+      badge.textContent = `💾 Saved: Lv.${level} • 🪙 ${coins} • 🍎 Sold: ${totalSoldAllTime}`;
+      badge.style.display = 'block';
+      document.getElementById('start-btn').textContent = `▶ CONTINUE (LV.${level})`;
+      document.getElementById('reset-btn').style.display = 'inline-block';
+    }
+
+    // Drone Entity
+    const drone = { x: 0, y: -40, targetTree: null, carrying: 0 };
+
+    // Trees
+    let trees = [];
+    let particles = [];
+    let floatingTexts = [];
+
+    function initTrees() {
+      trees = [];
+      const cols = 4;
+      const rows = 2;
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const idx = r * cols + c;
+          trees.push({
+            id: idx,
+            rx: (c - 1.5) * 0.44,
+            ry: (r - 0.5) * 0.42 - 0.12,
+            growth: 0.08,
+            visualScale: 0.08,
+            apples: 0,
+            maxApples: 3,
+            appleProgress: 0,
+            isGolden: (idx === 3 || idx === 7) && level >= 2,
+            onFire: false,
+            fireHp: 0,
+            swayOffset: idx * 1.1
+          });
+        }
+      }
+    }
+
+    function setupLevel() {
+      applesCarried = 0;
+      applesSoldLevel = 0;
+      applesTarget = 6 + level * 2;
+      player.x = 0;
+      player.y = 40;
+      player.water = player.maxWater;
+      fireTimer = 15;
+      initTrees();
+      updateHUD();
       saveGame();
     }
-  });
 
-  fireSpawnTimer -= dt;
-  if (fireSpawnTimer <= 0) {
-    fireSpawnTimer = Math.max(4, 11 - state.level * 0.5);
-    const grownTrees = trees.filter(t => t.growth > 0.4 && !t.onFire);
-    if (grownTrees.length > 0 && state.rainTimer <= 0) {
-      const target = grownTrees[Math.floor(Math.random() * grownTrees.length)];
-      target.onFire = true;
-      spawnText("🔥 FIRE!", target.x, target.y - 30, "#ff4757");
+    // Audio Synthesizer
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let actx = null;
+    function playTone(freq, type = 'sine', dur = 0.08, vol = 0.08) {
+      if (!soundOn) return;
+      try {
+        if (!actx) actx = new AudioCtx();
+        const osc = actx.createOscillator();
+        const gain = actx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, actx.currentTime);
+        gain.gain.setValueAtTime(vol, actx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+        osc.connect(gain);
+        gain.connect(actx.destination);
+        osc.start();
+        osc.stop(actx.currentTime + dur);
+      } catch (e) {}
     }
-  }
 
-  if (state.droneLv > 0) {
-    drone.angle += dt * (1.5 + state.droneLv * 0.3);
-    drone.x = Math.cos(drone.angle) * 95;
-    drone.y = Math.sin(drone.angle) * 55 - 10;
-    trees.forEach(t => {
-      if (Math.hypot(drone.x - t.x, drone.y - t.y) < 35) {
-        if (t.onFire) { t.onFire = false; AudioEngine.play('fire'); }
-        else if (t.growth < 1) t.growth = Math.min(1, t.growth + 0.25 * dt * state.droneLv);
+    function toggleSound() {
+      soundOn = !soundOn;
+      document.getElementById('sound-btn').textContent = soundOn ? '🔊' : '🔇';
+    }
+
+    function shareWhatsApp() {
+      const greenery = getGreeneryPercent();
+      const text = `🌍 I am playing *Go Green*! I reached Level ${level} with ${greenery}% Greenery and sold ${totalSoldAllTime} apples! 🌱🍎 Can you beat my score? Play now: ${window.location.href}`;
+      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      window.open(url, '_blank');
+    }
+
+    function triggerRain() {
+      window.open(SMART_LINK_URL, '_blank');
+      rainTimer = 20;
+      playTone(520, 'triangle', 0.25, 0.12);
+      spawnFloatingText(0, -60, "🌧️ 2X RAIN ACTIVATED!", "#38a3ff");
+    }
+
+    function startGame() {
+      document.getElementById('start-screen').style.display = 'none';
+      gameStarted = true;
+      setupLevel();
+      lastTime = performance.now();
+      requestAnimationFrame(loop);
+    }
+
+    function nextLevel() {
+      document.getElementById('level-modal').style.display = 'none';
+      level++;
+      levelPaused = false;
+      setupLevel();
+    }
+
+    // Joystick Controls
+    const joyZone = document.getElementById('joystick-zone');
+    const joyKnob = document.getElementById('joystick-knob');
+    let joyActive = false;
+    let joyVec = { x: 0, y: 0 };
+
+    function handleJoy(clientX, clientY) {
+      const rect = joyZone.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      let dx = clientX - cx;
+      let dy = clientY - cy;
+      const maxDist = 36;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxDist) {
+        dx = (dx / dist) * maxDist;
+        dy = (dy / dist) * maxDist;
       }
+      joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      joyVec.x = dx / maxDist;
+      joyVec.y = dy / maxDist;
+    }
+
+    joyZone.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      joyActive = true;
+      handleJoy(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+
+    joyZone.addEventListener('touchmove', (e) => {
+      e.preventDefault();
+      if (joyActive) handleJoy(e.touches[0].clientX, e.touches[0].clientY);
+    }, { passive: false });
+
+    const resetJoy = () => {
+      joyActive = false;
+      joyVec = { x: 0, y: 0 };
+      joyKnob.style.transform = `translate(0px, 0px)`;
+    };
+    joyZone.addEventListener('touchend', resetJoy);
+    joyZone.addEventListener('touchcancel', resetJoy);
+
+    joyZone.addEventListener('mousedown', (e) => {
+      joyActive = true;
+      handleJoy(e.clientX, e.clientY);
     });
-  }
+    window.addEventListener('mousemove', (e) => {
+      if (joyActive) handleJoy(e.clientX, e.clientY);
+    });
+    window.addEventListener('mouseup', () => {
+      if (joyActive) resetJoy();
+    });
 
-  const rainMult = state.rainTimer > 0 ? 2 : 1;
-  const rainbowMult = state.rainbowTimer > 0 ? 2 : 1;
-  const pandaBoost = state.pet === 'panda' ? 1.25 : 1;
-  const totalGrowRate = 0.22 * state.growMult * rainMult * rainbowMult * pandaBoost;
+    const keys = {};
+    window.addEventListener('keydown', e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
 
-  trees.forEach(t => {
-    if (state.rainTimer > 0) {
-      t.onFire = false;
-      if (t.growth < 1) t.growth = Math.min(1, t.growth + totalGrowRate * dt);
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function lerpColor(hex1, hex2, t) {
+      const c1 = parseInt(hex1.slice(1), 16);
+      const c2 = parseInt(hex2.slice(1), 16);
+      const r1 = (c1 >> 16) & 255, g1 = (c1 >> 8) & 255, b1 = c1 & 255;
+      const r2 = (c2 >> 16) & 255, g2 = (c2 >> 8) & 255, b2 = c2 & 255;
+      const r = Math.round(lerp(r1, r2, t));
+      const g = Math.round(lerp(g1, g2, t));
+      const b = Math.round(lerp(b1, b2, t));
+      return `rgb(${r}, ${g}, ${b})`;
     }
 
-    if (state.sprinkLv > 0 && !t.onFire && t.growth < 1) {
-      t.growth = Math.min(1, t.growth + (0.04 * state.sprinkLv * state.growMult) * dt);
+    function getGreeneryPercent() {
+      if (!trees.length) return 0;
+      const sum = trees.reduce((acc, t) => acc + t.growth, 0);
+      return Math.min(100, Math.round((sum / trees.length) * 100));
     }
 
-    if (Math.hypot(player.x - t.x, player.y - t.y) < 34) {
-      if (t.onFire && state.water >= 10) {
-        state.water -= 10;
-        t.onFire = false;
-        AudioEngine.play('fire');
-        spawnText("Fire Out! 💦", t.x, t.y - 25, "#3498db");
-        spawnParticles(t.x, t.y, "#3498db", 8);
-      } else if (!t.onFire && t.growth < 1 && state.water > 0) {
-        const waterUse = 18 * dt;
-        state.water = Math.max(0, state.water - waterUse);
-        t.growth = Math.min(1, t.growth + totalGrowRate * dt);
-        if (t.growth >= 1) {
-          t.hasApple = true;
-          AudioEngine.play('plant');
-          spawnParticles(t.x, t.y - 15, "#2ecc71", 8);
-        }
-      } else if (t.hasApple) {
-        t.hasApple = false;
-        t.growth = 0.45;
-        const yieldCount = t.isGolden ? 2 : 1;
-        player.apples += yieldCount;
-        AudioEngine.play('coin');
-        spawnText(t.isGolden ? "+2 Golden 🍎" : "+1 🍎", t.x, t.y - 25, "#ff6b6b");
+    function spawnParticle(x, y, color, count = 3) {
+      for (let i = 0; i < count; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 60,
+          vy: -20 - Math.random() * 50,
+          life: 0.55,
+          color,
+          size: 3 + Math.random() * 3
+        });
       }
     }
 
-    if (t.onFire) {
-      t.growth = Math.max(0, t.growth - 0.08 * dt);
-      if (t.growth <= 0) t.onFire = false;
+    function spawnFloatingText(x, y, text, color = "#fff") {
+      floatingTexts.push({ x, y, text, color, life: 1.0 });
     }
 
-    if (t.growth >= 1 && !t.hasApple && !t.onFire) {
-      t.hasApple = true;
+    function getIslandMetrics() {
+      const cx = W / 2;
+      const cy = H * 0.54;
+      const rx = Math.min(W * 0.45, 220);
+      const ry = rx * 0.72;
+      return { cx, cy, rx, ry };
     }
-  });
 
-  floatingTexts.forEach(f => { f.y -= 25 * dt; f.life -= dt; });
-  floatingTexts = floatingTexts.filter(f => f.life > 0);
-  particles.forEach(p => { p.x += p.vx; p.y += p.vy; p.life -= dt; });
-  particles = particles.filter(p => p.life > 0);
+    let upgradeCooldown = 0;
 
-  updateHUD();
-}
+    function update(dt) {
+      if (!gameStarted || levelPaused) return;
 
-/* ================= RENDERING 2.5D ISLAND ================= */
-function draw() {
-  const th = THEMES[state.theme];
-  ctx.fillStyle = th.sky;
-  ctx.fillRect(0, 0, W, H);
+      const { cx, cy, rx, ry } = getIslandMetrics();
+      const mult = rainTimer > 0 ? 2 : 1;
 
-  ctx.save();
-  const zoom = Math.min(W / 380, H / 460) * 1.05;
-  ctx.translate(CX, CY);
-  ctx.scale(zoom, zoom);
+      if (rainTimer > 0) rainTimer = Math.max(0, rainTimer - dt);
+      if (upgradeCooldown > 0) upgradeCooldown -= dt;
 
-  ctx.beginPath();
-  ctx.ellipse(0, 26, 188, 134, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(0,0,0,0.22)";
-  ctx.fill();
+      let mx = joyVec.x;
+      let my = joyVec.y;
+      if (keys['w'] || keys['arrowup']) my -= 1;
+      if (keys['s'] || keys['arrowdown']) my += 1;
+      if (keys['a'] || keys['arrowleft']) mx -= 1;
+      if (keys['d'] || keys['arrowright']) mx += 1;
 
-  ctx.beginPath();
-  ctx.ellipse(0, 20, 180, 128, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "#8c6239";
-  ctx.fill();
+      const len = Math.hypot(mx, my);
+      if (len > 1) { mx /= len; my /= len; }
 
-  ctx.beginPath();
-  ctx.ellipse(0, 14, 178, 125, 0, 0, Math.PI * 2);
-  ctx.fillStyle = th.sand;
-  ctx.fill();
+      const speedMult = 1 + (upgrades.speed.lv - 1) * 0.15;
+      player.x += mx * player.baseSpeed * speedMult * dt;
+      player.y += my * player.baseSpeed * speedMult * dt;
 
-  ctx.beginPath();
-  ctx.ellipse(0, 12, 166, 115, 0, 0, Math.PI * 2);
-  ctx.fillStyle = th.island;
-  ctx.fill();
+      const normDist = (player.x * player.x) / (rx * rx) + (player.y * player.y) / (ry * ry);
+      if (normDist > 0.92) {
+        const scale = Math.sqrt(0.92 / normDist);
+        player.x *= scale;
+        player.y *= scale;
+      }
 
-  ctx.fillStyle = "#7f8c8d";
-  ctx.beginPath(); ctx.ellipse(stations.well.x, stations.well.y + 4, 34, 22, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#00a8ff";
-  ctx.beginPath(); ctx.ellipse(stations.well.x, stations.well.y, 28, 17, 0, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#fff"; ctx.font = "bold 10px sans-serif"; ctx.textAlign = "center";
-  ctx.fillText("💧 Water Well", stations.well.x, stations.well.y - 22);
+      const wellPos = { x: -rx * 0.65, y: ry * 0.45 };
+      const marketPos = { x: rx * 0.65, y: ry * 0.45 };
 
-  ctx.fillStyle = "#d35400";
-  ctx.fillRect(stations.market.x - 28, stations.market.y - 16, 56, 26);
-  ctx.fillStyle = "#2ecc71";
-  ctx.fillRect(stations.market.x - 30, stations.market.y - 24, 60, 10);
-  ctx.fillStyle = "#fff";
-  ctx.fillText("🏪 Eco-Market", stations.market.x, stations.market.y - 28);
+      // Water Well
+      if (Math.hypot(player.x - wellPos.x, player.y - wellPos.y) < 42) {
+        if (player.water < player.maxWater) {
+          player.water = Math.min(player.maxWater, player.water + 90 * dt);
+          if (Math.random() < 0.3) spawnParticle(player.x, player.y - 10, '#4fc3f7', 1);
+        }
+      }
 
-  pads.forEach(p => {
-    const lv = state[p.id + 'Lv'];
-    const cost = Math.floor(p.baseCost * Math.pow(1.45, lv));
-    ctx.fillStyle = state.coins >= cost ? "rgba(46, 204, 113, 0.35)" : "rgba(15, 25, 35, 0.75)";
-    ctx.strokeStyle = state.coins >= cost ? "#2ecc71" : "rgba(255,255,255,0.25)";
-    ctx.lineWidth = 1.5;
-    ctx.beginPath(); ctx.roundRect(p.x - 31, p.y - 16, 62, 30, 8); ctx.fill(); ctx.stroke();
+      // Eco-Market
+      if (Math.hypot(player.x - marketPos.x, player.y - marketPos.y) < 44) {
+        if (applesCarried > 0) {
+          const earned = applesCarried * (10 + level * 2);
+          coins += earned;
+          applesSoldLevel += applesCarried;
+          totalSoldAllTime += applesCarried;
+          spawnFloatingText(marketPos.x, marketPos.y - 25, `+${earned} 🪙`, '#ffd54f');
+          playTone(680, 'sine', 0.14, 0.12);
+          applesCarried = 0;
+          saveGame();
 
-    ctx.fillStyle = "#fff"; ctx.font = "bold 9px sans-serif";
-    ctx.fillText(`${p.label} Lv.${lv}`, p.x, p.y - 3);
-    ctx.fillStyle = "#f1c40f";
-    ctx.fillText(`🪙 ${cost}`, p.x, p.y + 9);
-  });
+          if (applesSoldLevel >= applesTarget) {
+            triggerLevelComplete();
+          }
+        }
+      }
 
-  trees.forEach(t => {
-    ctx.fillStyle = "#5d4037";
-    ctx.beginPath(); ctx.ellipse(t.x, t.y + 6, 16, 9, 0, 0, Math.PI * 2); ctx.fill();
+      // Upgrade Pads
+      const padPositions = [
+        { key: 'tank', x: -rx * 0.54, y: 0.04 * ry },
+        { key: 'speed', x: -rx * 0.18, y: 0.04 * ry },
+        { key: 'sprinkler', x: rx * 0.18, y: 0.04 * ry },
+        { key: 'drone', x: rx * 0.54, y: 0.04 * ry }
+      ];
 
-    if (t.growth > 0.05) {
-      const scale = 0.35 + t.growth * 0.65;
-      ctx.fillStyle = "#6d4c41";
-      ctx.fillRect(t.x - 4 * scale, t.y - 18 * scale, 8 * scale, 22 * scale);
-      ctx.fillStyle = t.isGolden ? "#f1c40f" : (t.growth >= 1 ? "#2ecc71" : "#27ae60");
+      padPositions.forEach(pad => {
+        const upg = upgrades[pad.key];
+        if (Math.hypot(player.x - pad.x, player.y - pad.y) < 26 && upgradeCooldown <= 0) {
+          if (coins >= upg.cost) {
+            coins -= upg.cost;
+            upg.lv++;
+            upg.cost = Math.round(upg.cost * 1.55);
+            upgradeCooldown = 0.45;
+            if (pad.key === 'tank') {
+              player.maxWater += 40;
+              player.water = player.maxWater;
+            }
+            spawnFloatingText(pad.x, pad.y - 22, `${upg.label} Lv.${upg.lv}!`, '#69f0ae');
+            playTone(540, 'triangle', 0.15, 0.12);
+            saveGame();
+          }
+        }
+      });
+
+      // Fire Event
+      fireTimer -= dt;
+      if (fireTimer <= 0) {
+        fireTimer = Math.max(14, 24 - level);
+        const grownTrees = trees.filter(t => t.growth > 0.45 && !t.onFire);
+        if (grownTrees.length > 0) {
+          const target = grownTrees[Math.floor(Math.random() * grownTrees.length)];
+          target.onFire = true;
+          target.fireHp = 100;
+        }
+      }
+
+      let anyFire = false;
+
+      trees.forEach(t => {
+        const tx = t.rx * rx;
+        const ty = t.ry * ry;
+        const dist = Math.hypot(player.x - tx, player.y - ty);
+
+        if (dist < 42 && player.water > 0) {
+          if (t.onFire) {
+            player.water = Math.max(0, player.water - 22 * dt);
+            t.fireHp -= 55 * dt;
+            spawnParticle(tx, ty - 15, '#29b6f6', 2);
+            if (t.fireHp <= 0) {
+              t.onFire = false;
+              coins += 15;
+              spawnFloatingText(tx, ty - 25, "🔥 Saved! +15 🪙", "#81c784");
+              playTone(620, 'sine', 0.15, 0.12);
+              saveGame();
+            }
+          } else if (t.growth < 1.0) {
+            const waterUsed = 16 * dt;
+            player.water = Math.max(0, player.water - waterUsed);
+            t.growth = Math.min(1.0, t.growth + 0.24 * mult * dt);
+            if (Math.random() < 0.35) spawnParticle(tx, ty - 10, '#4fc3f7', 1);
+          }
+        }
+
+        if (upgrades.sprinkler.lv > 0 && !t.onFire && t.growth < 1.0) {
+          t.growth = Math.min(1.0, t.growth + (0.025 * upgrades.sprinkler.lv * mult) * dt);
+        }
+
+        if (rainTimer > 0 && !t.onFire && t.growth < 1.0) {
+          t.growth = Math.min(1.0, t.growth + 0.08 * dt);
+        }
+
+        if (t.onFire) {
+          anyFire = true;
+          t.growth = Math.max(0.1, t.growth - 0.03 * dt);
+          if (Math.random() < 0.4) spawnParticle(tx, ty - 14, '#ff7043', 1);
+        }
+
+        t.visualScale += (t.growth - t.visualScale) * Math.min(1, 6 * dt);
+
+        if (t.growth >= 0.85 && !t.onFire && t.apples < t.maxApples) {
+          t.appleProgress += (0.28 + level * 0.03) * mult * dt;
+          if (t.appleProgress >= 1) {
+            t.appleProgress = 0;
+            t.apples++;
+          }
+        }
+
+        if (dist < 38 && t.apples > 0) {
+          const bonus = t.isGolden ? 2 : 1;
+          applesCarried += t.apples * bonus;
+          spawnFloatingText(tx, ty - 25, `+${t.apples * bonus} 🍎`, t.isGolden ? '#ffd700' : '#ff5252');
+          playTone(760, 'sine', 0.09, 0.1);
+          t.apples = 0;
+        }
+      });
+
+      document.getElementById('fire-alert').style.display = anyFire ? 'block' : 'none';
+
+      // Drone Auto-Harvester
+      if (upgrades.drone.lv > 0) {
+        const dSpeed = 90 + upgrades.drone.lv * 25;
+        if (drone.carrying === 0) {
+          const readyTree = trees.find(t => t.apples > 0);
+          if (readyTree) {
+            const tx = readyTree.rx * rx;
+            const ty = readyTree.ry * ry - 15;
+            const d = Math.hypot(tx - drone.x, ty - drone.y);
+            if (d > 8) {
+              drone.x += ((tx - drone.x) / d) * dSpeed * dt;
+              drone.y += ((ty - drone.y) / d) * dSpeed * dt;
+            } else {
+              drone.carrying = readyTree.apples * (readyTree.isGolden ? 2 : 1);
+              readyTree.apples = 0;
+            }
+          }
+        } else {
+          const d = Math.hypot(marketPos.x - drone.x, marketPos.y - drone.y);
+          if (d > 10) {
+            drone.x += ((marketPos.x - drone.x) / d) * dSpeed * dt;
+            drone.y += ((marketPos.y - drone.y) / d) * dSpeed * dt;
+          } else {
+            const earned = drone.carrying * (10 + level * 2);
+            coins += earned;
+            applesSoldLevel += drone.carrying;
+            totalSoldAllTime += drone.carrying;
+            spawnFloatingText(marketPos.x, marketPos.y - 30, `🛸 +${earned} 🪙`, '#80deea');
+            drone.carrying = 0;
+            saveGame();
+            if (applesSoldLevel >= applesTarget) triggerLevelComplete();
+          }
+        }
+      }
+
+      particles.forEach(p => {
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+        p.life -= dt;
+      });
+      particles = particles.filter(p => p.life > 0);
+
+      floatingTexts.forEach(ft => {
+        ft.y -= 28 * dt;
+        ft.life -= dt;
+      });
+      floatingTexts = floatingTexts.filter(ft => ft.life > 0);
+
+      updateHUD();
+    }
+
+    function triggerLevelComplete() {
+      levelPaused = true;
+      const bonus = 40 + level * 10;
+      coins += bonus;
+      saveGame();
+      document.getElementById('modal-reward-txt').textContent = `Reward: +${bonus} Bonus Coins 🪙`;
+      document.getElementById('next-lv-btn').textContent = `CONTINUE TO LEVEL ${level + 1} ▶`;
+      document.getElementById('level-modal').style.display = 'flex';
+      playTone(880, 'triangle', 0.3, 0.15);
+    }
+
+    function updateHUD() {
+      const greenery = getGreeneryPercent();
+      document.getElementById('lv-badge').textContent = `Lv.${level}`;
+      document.getElementById('coins-txt').textContent = coins;
+      document.getElementById('apples-txt').textContent = `${applesSoldLevel} / ${applesTarget}`;
+      document.getElementById('greenery-pct').textContent = `${greenery}%`;
+      document.getElementById('greenery-bar').style.width = `${greenery}%`;
+
+      document.getElementById('quest-txt').textContent =
+        `📋 Quest: Grow & Sell Apples (${applesSoldLevel}/${applesTarget}) • Total Sold: ${totalSoldAllTime}`;
+
+      const spdMult = (1 + (upgrades.speed.lv - 1) * 0.15).toFixed(1);
+      document.getElementById('spd-mult').textContent = `${spdMult}x`;
+      document.getElementById('rain-mult').textContent = rainTimer > 0 ? '2x' : '1x';
+
+      document.getElementById('water-txt').textContent = `${Math.round(player.water)}/${player.maxWater}`;
+      document.getElementById('water-bar').style.width = `${(player.water / player.maxWater) * 100}%`;
+
+      const rainBtn = document.getElementById('rain-btn');
+      if (rainTimer > 0) {
+        rainBtn.classList.add('active');
+        rainBtn.textContent = `⏳ Rain: ${Math.ceil(rainTimer)}s`;
+      } else {
+        rainBtn.classList.remove('active');
+        rainBtn.textContent = `🌧️ Call Rain (2x)`;
+      }
+    }
+
+    /* CARTOON STYLE FLUFFY TREE RENDERER */
+    function drawCartoonTree(t, tx, ty, now) {
+      // Ground patch under tree
       ctx.beginPath();
-      ctx.arc(t.x, t.y - 24 * scale, 18 * scale, 0, Math.PI * 2);
+      ctx.ellipse(tx, ty + 4, 18, 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = t.growth > 0.2 ? 'rgba(38, 166, 91, 0.35)' : 'rgba(144, 164, 174, 0.5)';
       ctx.fill();
 
-      if (t.hasApple) {
-        ctx.fillStyle = t.isGolden ? "#fff200" : "#ff3f34";
-        ctx.beginPath(); ctx.arc(t.x - 7, t.y - 22, 4, 0, Math.PI * 2); ctx.fill();
-        ctx.beginPath(); ctx.arc(t.x + 7, t.y - 26, 4, 0, Math.PI * 2); ctx.fill();
+      const s = 0.28 + t.visualScale * 0.88;
+      // Gentle cartoon wind sway
+      const sway = Math.sin(now * 0.0025 + t.swayOffset) * 0.045 * t.visualScale;
+
+      ctx.save();
+      ctx.translate(tx, ty);
+      ctx.scale(s, s);
+      ctx.rotate(sway);
+
+      // Soft contact shadow
+      ctx.beginPath();
+      ctx.ellipse(0, 3, 16, 7, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+      ctx.fill();
+
+      // 1. Tapered Cartoon Trunk with Roots & Dark Outline
+      ctx.beginPath();
+      ctx.moveTo(-8, 2);
+      ctx.quadraticCurveTo(-5, -12, -4, -26);
+      ctx.lineTo(4, -26);
+      ctx.quadraticCurveTo(5, -12, 8, 2);
+      ctx.quadraticCurveTo(0, 5, -8, 2);
+      ctx.closePath();
+      ctx.fillStyle = '#8d5524';
+      ctx.fill();
+      ctx.lineWidth = 2.2;
+      ctx.strokeStyle = '#3e220f';
+      ctx.stroke();
+
+      // Small cartoon wood grain line on trunk
+      ctx.beginPath();
+      ctx.moveTo(-1.5, -4);
+      ctx.lineTo(-1, -16);
+      ctx.strokeStyle = '#5c3312';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      // Color Palette (Normal Lush Green vs Golden Tree)
+      const colOutline = t.isGolden ? '#5c3c00' : '#134e26';
+      const colShadow  = t.isGolden ? '#d48806' : '#1b8a42';
+      const colMain    = t.isGolden ? '#fadb14' : '#2ecc71';
+      const colBright  = t.isGolden ? '#fff566' : '#7bed9f';
+
+      // Fluffy Cloud-Style Foliage Lobes (instead of a single plain circle)
+      const puffs = [
+        { x: -16, y: -27, r: 13 }, // bottom-left puff
+        { x:  16, y: -27, r: 13 }, // bottom-right puff
+        { x: -13, y: -41, r: 13 }, // top-left puff
+        { x:  13, y: -41, r: 13 }, // top-right puff
+        { x:   0, y: -48, r: 15 }, // top crown puff
+        { x:   0, y: -33, r: 16 }  // center body puff
+      ];
+
+      // Step A: Draw Outer Cartoon Stroke silhouette first
+      ctx.fillStyle = colOutline;
+      puffs.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r + 2.4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Step B: Draw Lower Shadow Foliage Layer
+      ctx.fillStyle = colShadow;
+      puffs.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y + 1.5, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Step C: Draw Main Vibrant Canopy Layer (shifted slightly up for 3D cartoon volume)
+      ctx.fillStyle = colMain;
+      puffs.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y - 2, p.r * 0.92, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // Step D: Top Sunlit Cartoon Highlight Puffs
+      ctx.fillStyle = colBright;
+      [
+        { x: -4, y: -51, r: 7 },
+        { x: -12, y: -42, r: 5 },
+        { x: 7, y: -45, r: 4.5 }
+      ].forEach(h => {
+        ctx.beginPath();
+        ctx.arc(h.x, h.y, h.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      // 2. Cute Cartoon Apples with Shine & Leaf
+      if (t.apples > 0) {
+        const appleSpots = [
+          { x: -12, y: -28 },
+          { x:  12, y: -27 },
+          { x:   0, y: -39 }
+        ];
+        for (let i = 0; i < t.apples; i++) {
+          const ap = appleSpots[i];
+          // Apple body
+          ctx.beginPath();
+          ctx.arc(ap.x, ap.y, 5.2, 0, Math.PI * 2);
+          ctx.fillStyle = t.isGolden ? '#ffd700' : '#ff3b30';
+          ctx.fill();
+          ctx.lineWidth = 1.6;
+          ctx.strokeStyle = '#3e1210';
+          ctx.stroke();
+
+          // Glossy white highlight dot
+          ctx.beginPath();
+          ctx.arc(ap.x - 1.6, ap.y - 1.6, 1.5, 0, Math.PI * 2);
+          ctx.fillStyle = '#ffffff';
+          ctx.fill();
+        }
       }
-    } else {
-      ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.font = "9px sans-serif";
-      ctx.fillText("🌱", t.x, t.y + 4);
+
+      // Fire Effect
+      if (t.onFire) {
+        ctx.font = '26px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('🔥', 0, -30);
+      }
+
+      ctx.restore();
     }
 
-    if (t.onFire) {
-      ctx.font = "22px sans-serif";
-      ctx.fillText("🔥", t.x, t.y - 15);
+    function draw(now) {
+      const greeneryRatio = getGreeneryPercent() / 100;
+      const { cx, cy, rx, ry } = getIslandMetrics();
+
+      // 1. Dynamic Theme Background (Barren Yellow-Sand -> Lush Green-Sky)
+      const skyTop = lerpColor('#89d4e8', '#4fc3f7', greeneryRatio);
+      const skyBottom = lerpColor('#f5eba4', '#8ce374', greeneryRatio);
+      const bgGrad = ctx.createLinearGradient(0, 0, 0, H);
+      bgGrad.addColorStop(0, skyTop);
+      bgGrad.addColorStop(1, skyBottom);
+      ctx.fillStyle = bgGrad;
+      ctx.fillRect(0, 0, W, H);
+
+      // 2. Island Base
+      const islandRim = lerpColor('#d6c678', '#e6d78a', greeneryRatio);
+      const islandGrass = lerpColor('#dcd48c', '#68c958', greeneryRatio);
+
+      ctx.beginPath();
+      ctx.ellipse(cx, cy + 6, rx + 10, ry + 10, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.08)';
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx + 6, ry + 6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = islandRim;
+      ctx.fill();
+
+      ctx.beginPath();
+      ctx.ellipse(cx, cy, rx, ry, 0, 0, Math.PI * 2);
+      ctx.fillStyle = islandGrass;
+      ctx.fill();
+
+      // 3. Water Well (Left)
+      const wellX = cx - rx * 0.65;
+      const wellY = cy + ry * 0.45;
+      ctx.beginPath();
+      ctx.ellipse(wellX, wellY, 32, 22, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#90a4ae';
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#37474f';
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(wellX, wellY, 25, 16, 0, 0, Math.PI * 2);
+      ctx.fillStyle = '#03a9f4';
+      ctx.fill();
+      drawLabelPill(wellX, wellY - 26, "💧 Water Well");
+
+      // 4. Eco-Market (Right)
+      const mktX = cx + rx * 0.65;
+      const mktY = cy + ry * 0.45;
+      ctx.beginPath();
+      ctx.ellipse(mktX, mktY + 4, 34, 20, 0, 0, Math.PI * 2);
+      ctx.strokeStyle = '#2ecc71';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.fillStyle = '#d35400';
+      ctx.fillRect(mktX - 22, mktY - 10, 44, 20);
+      ctx.fillStyle = '#e67e22';
+      ctx.fillRect(mktX - 24, mktY - 14, 48, 7);
+      drawLabelPill(mktX, mktY - 26, "🏪 Eco-Market");
+
+      // 5. Upgrade Pads
+      const pads = [
+        { key: 'tank', x: cx - rx * 0.54, y: cy + 0.04 * ry },
+        { key: 'speed', x: cx - rx * 0.18, y: cy + 0.04 * ry },
+        { key: 'sprinkler', x: cx + rx * 0.18, y: cy + 0.04 * ry },
+        { key: 'drone', x: cx + rx * 0.54, y: cy + 0.04 * ry }
+      ];
+
+      pads.forEach(p => {
+        const upg = upgrades[p.key];
+        const canAfford = coins >= upg.cost;
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y + 12, 18, 11, 0, 0, Math.PI * 2);
+        ctx.fillStyle = canAfford ? 'rgba(46, 204, 113, 0.45)' : 'rgba(255, 255, 255, 0.25)';
+        ctx.fill();
+        ctx.strokeStyle = canAfford ? '#2ecc71' : '#bdc3c7';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        const bw = 64, bh = 30;
+        ctx.fillStyle = 'rgba(24, 36, 48, 0.92)';
+        roundRect(ctx, p.x - bw / 2, p.y - 22, bw, bh, 7, true);
+        ctx.fillStyle = '#fff';
+        ctx.font = 'bold 9.5px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`${upg.icon}${upg.label} Lv.${upg.lv}`, p.x, p.y - 10);
+        ctx.fillStyle = canAfford ? '#ffd54f' : '#95a5a6';
+        ctx.fillText(`🪙 ${upg.cost}`, p.x, p.y + 2);
+      });
+
+      // 6. Cartoon Trees (Sorted by Y for depth)
+      const sortedTrees = [...trees].sort((a, b) => a.ry - b.ry);
+      sortedTrees.forEach(t => {
+        const tx = cx + t.rx * rx;
+        const ty = cy + t.ry * ry;
+        drawCartoonTree(t, tx, ty, now);
+      });
+
+      // 7. Player Character (Cartoon Style with outlines)
+      const px = cx + player.x;
+      const py = cy + player.y;
+
+      ctx.beginPath();
+      ctx.arc(px, py, 36, 0, Math.PI * 2);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.28)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+
+      ctx.beginPath();
+      ctx.ellipse(px, py + 10, 11, 6, 0, 0, Math.PI * 2);
+      ctx.fillStyle = 'rgba(0,0,0,0.25)';
+      ctx.fill();
+
+      // Body
+      ctx.fillStyle = '#0288d1';
+      ctx.beginPath();
+      ctx.arc(px, py, 10, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.lineWidth = 1.8;
+      ctx.strokeStyle = '#013a5c';
+      ctx.stroke();
+
+      // Head
+      ctx.fillStyle = '#ffcc80';
+      ctx.beginPath();
+      ctx.arc(px, py - 11, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#4e342e';
+      ctx.stroke();
+
+      // Hat
+      ctx.fillStyle = '#8d6e63';
+      ctx.beginPath();
+      ctx.ellipse(px, py - 15, 11, 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      if (applesCarried > 0) {
+        ctx.fillStyle = '#ff5252';
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(`🍎 x${applesCarried}`, px, py - 26);
+      }
+
+      // 8. Drone
+      if (upgrades.drone.lv > 0) {
+        const dx = cx + drone.x;
+        const dy = cy + drone.y;
+        ctx.fillStyle = '#eceff1';
+        ctx.beginPath();
+        ctx.ellipse(dx, dy, 12, 6, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = '#37474f';
+        ctx.stroke();
+        ctx.fillStyle = '#00e5ff';
+        ctx.beginPath();
+        ctx.arc(dx, dy - 2, 5, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      // 9. Rain Effect
+      if (rainTimer > 0) {
+        ctx.strokeStyle = 'rgba(179, 229, 252, 0.65)';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 35; i++) {
+          const rxDrop = (Math.sin(i * 77 + now * 0.004) * 0.5 + 0.5) * W;
+          const ryDrop = ((now * 0.55 + i * 47) % H);
+          ctx.beginPath();
+          ctx.moveTo(rxDrop, ryDrop);
+          ctx.lineTo(rxDrop - 4, ryDrop + 12);
+          ctx.stroke();
+        }
+      }
+
+      // 10. Particles & Floating Texts
+      particles.forEach(p => {
+        ctx.fillStyle = p.color;
+        ctx.beginPath();
+        ctx.arc(cx + p.x, cy + p.y, p.size, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      floatingTexts.forEach(ft => {
+        ctx.globalAlpha = Math.max(0, ft.life);
+        ctx.fillStyle = ft.color;
+        ctx.font = 'bold 13px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(ft.text, cx + ft.x, cy + ft.y);
+        ctx.globalAlpha = 1;
+      });
     }
-  });
 
-  if (state.pet !== 'none') {
-    const petEmoji = state.pet === 'fox' ? "🦊" : state.pet === 'panda' ? "🐼" : "🐢";
-    ctx.font = "18px sans-serif";
-    ctx.fillText(petEmoji, player.x - 18, player.y + 6);
-  }
-
-  const skinColors = { ranger: "#3498db", golden: "#f1c40f", ninja: "#2c3e50" };
-  ctx.fillStyle = "rgba(0,0,0,0.3)";
-  ctx.beginPath(); ctx.ellipse(player.x, player.y + 8, 10, 5, 0, 0, Math.PI * 2); ctx.fill();
-
-  ctx.fillStyle = skinColors[state.skin] || "#3498db";
-  ctx.beginPath(); ctx.arc(player.x, player.y - 4, 11, 0, Math.PI * 2); ctx.fill();
-  ctx.fillStyle = "#ffeaa7";
-  ctx.beginPath(); ctx.arc(player.x, player.y - 14, 7, 0, Math.PI * 2); ctx.fill();
-
-  if (player.apples > 0) {
-    ctx.fillStyle = "#ff4757"; ctx.font = "bold 11px sans-serif";
-    ctx.fillText(`🍎 x${player.apples}`, player.x, player.y - 26);
-  }
-
-  if (state.droneLv > 0) {
-    ctx.font = "18px sans-serif";
-    ctx.fillText("🛸", drone.x, drone.y);
-  }
-
-  if (state.rainTimer > 0) {
-    ctx.strokeStyle = "rgba(174, 214, 241, 0.7)";
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < 25; i++) {
-      const rx = (Math.random() - 0.5) * 340;
-      const ry = (Math.random() - 0.5) * 240;
-      ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx - 4, ry + 12); ctx.stroke();
+    function drawLabelPill(x, y, text) {
+      ctx.font = 'bold 10.5px sans-serif';
+      const w = ctx.measureText(text).width + 14;
+      ctx.fillStyle = 'rgba(24, 36, 48, 0.9)';
+      roundRect(ctx, x - w / 2, y - 10, w, 20, 10, true);
+      ctx.fillStyle = '#fff';
+      ctx.textAlign = 'center';
+      ctx.fillText(text, x, y + 3.5);
     }
-  }
 
-  particles.forEach(p => {
-    ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, 4, 4);
-  });
-  floatingTexts.forEach(f => {
-    ctx.fillStyle = f.color; ctx.font = "bold 12px sans-serif";
-    ctx.fillText(f.txt, f.x, f.y);
-  });
+    function roundRect(ctx, x, y, w, h, r, fill) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      if (fill) ctx.fill();
+    }
 
-  ctx.restore();
-}
-
-/* ================= HUD & BUTTON INTERACTIONS ================= */
-function updateHUD() {
-  const target = getLevelTarget();
-  document.getElementById('hud-level').innerText = `Lv.${state.level}`;
-  document.getElementById('hud-coins').innerText = Math.floor(state.coins);
-  document.getElementById('hud-apples').innerText = state.applesSold;
-  document.getElementById('hud-target').innerText = target;
-
-  const avgGrowth = trees.reduce((acc, t) => acc + t.growth, 0) / trees.length;
-  const pct = Math.round(avgGrowth * 100);
-  document.getElementById('hud-green-pct').innerText = `${pct}%`;
-  document.getElementById('hud-green-bar').style.width = `${pct}%`;
-
-  document.getElementById('hud-quest').innerText = `📋 Quest: Grow & Sell Apples (${state.applesSold}/${target}) • Total Sold: ${state.totalSold}`;
-  document.getElementById('hud-water-txt').innerText = `${Math.floor(state.water)}/${state.maxWater}`;
-  document.getElementById('water-fill').style.width = `${(state.water / state.maxWater) * 100}%`;
-
-  if (state.boss.active) {
-    document.getElementById('boss-hp-fill').style.width = `${(state.boss.hp / state.boss.maxHp) * 100}%`;
-  }
-}
-
-document.getElementById('btn-start-game').onclick = () => {
-  document.getElementById('start-screen').style.display = 'none';
-  AudioEngine.init();
-  try {
-    if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen();
-  } catch(e) {}
-  setupLevel();
-};
-
-document.getElementById('btn-rain').onclick = () => {
-  window.open(SMARTLINK_RAIN, '_blank');
-  state.rainTimer = 15;
-  AudioEngine.play('water');
-  spawnText("🌧️ 2x RAIN BOOST!", 0, -40, "#3498db");
-};
-
-document.getElementById('btn-free-bonus').onclick = () => {
-  if (state.bonusCooldown <= 0) {
-    state.coins += 50;
-    state.bonusCooldown = 45;
-    AudioEngine.play('coin');
-    spawnText("+50 BONUS COINS!", 0, -30, "#f1c40f");
-    saveGame();
-  }
-};
-
-document.getElementById('btn-rainbow').onclick = () => {
-  state.rainbowTimer = 15;
-  document.getElementById('btn-rainbow').style.display = 'none';
-  spawnText("🌈 RAINBOW 2X COINS & GROWTH!", 0, -45, "#ff9ff3");
-};
-
-document.getElementById('btn-move-spd').onclick = (e) => {
-  state.moveMult = state.moveMult === 1 ? 1.5 : state.moveMult === 1.5 ? 2 : 1;
-  e.target.innerText = `🏃 Move: ${state.moveMult}x`;
-};
-document.getElementById('btn-grow-spd').onclick = (e) => {
-  state.growMult = state.growMult === 1 ? 1.5 : state.growMult === 1.5 ? 2 : 1;
-  e.target.innerText = `🌱 Growth: ${state.growMult}x`;
-};
-
-document.getElementById('btn-mute').onclick = (e) => {
-  AudioEngine.muted = !AudioEngine.muted;
-  e.target.innerText = AudioEngine.muted ? "🔇" : "🔊";
-};
-
-/* ================= MODALS ================= */
-function openFeatureModal(title, html) {
-  document.getElementById('modal-title').innerText = title;
-  document.getElementById('modal-body').innerHTML = html;
-  document.getElementById('modal-feature').style.display = 'flex';
-}
-function closeFeatureModal() { document.getElementById('modal-feature').style.display = 'none'; }
-
-document.getElementById('btn-themes').onclick = () => {
-  let html = `<div class="grid-2">`;
-  Object.keys(THEMES).forEach(k => {
-    html += `<div class="item-card ${state.theme === k ? 'active' : ''}" onclick="setTheme('${k}')">
-      <b>${THEMES[k].name}</b><br><small>Tap to Select</small>
-    </div>`;
-  });
-  html += `</div>`;
-  openFeatureModal("🏝️ Island Themes", html);
-};
-window.setTheme = (t) => { state.theme = t; saveGame(); closeFeatureModal(); };
-
-document.getElementById('btn-pets').onclick = () => {
-  openFeatureModal("🦊 Pets & Skins", `
-    <p style="font-size:0.8rem; margin-bottom:6px;">Companion Pets (Free Unlock):</p>
-    <div class="grid-2">
-      <div class="item-card ${state.pet==='fox'?'active':''}" onclick="setPet('fox')">🦊 <b>Fox</b><br><small>+15% Move Speed</small></div>
-      <div class="item-card ${state.pet==='panda'?'active':''}" onclick="setPet('panda')">🐼 <b>Panda</b><br><small>+25% Tree Growth</small></div>
-      <div class="item-card ${state.pet==='turtle'?'active':''}" onclick="setPet('turtle')">🐢 <b>Turtle</b><br><small>Eco Guardian</small></div>
-      <div class="item-card ${state.skin==='golden'?'active':''}" onclick="setSkin('golden')">👑 <b>Golden Skin</b><br><small>VIP Outfit</small></div>
-    </div>
-  `);
-};
-window.setPet = (p) => { state.pet = p; saveGame(); closeFeatureModal(); };
-window.setSkin = (s) => { state.skin = s; saveGame(); closeFeatureModal(); };
-
-document.getElementById('btn-spin').onclick = () => {
-  openFeatureModal("🎡 Lucky Spin Wheel", `
-    <p style="font-size:0.85rem; margin-bottom:10px;">Spin to win Coins or Rainbow Boost!</p>
-    <button class="btn-play" style="font-size:1rem; padding:10px 24px;" onclick="doSpin()">🎯 SPIN NOW</button>
-    <p id="spin-res" style="margin-top:10px; font-weight:bold; color:#f1c40f;"></p>
-  `);
-};
-window.doSpin = () => {
-  const prizes = [
-    { txt: "+100 Coins 🪙", fn: () => state.coins += 100 },
-    { txt: "🌈 Rainbow Boost Unlocked!", fn: () => document.getElementById('btn-rainbow').style.display = 'inline-block' },
-    { txt: "+250 Coins 🪙", fn: () => state.coins += 250 }
-  ];
-  const win = prizes[Math.floor(Math.random() * prizes.length)];
-  win.fn(); AudioEngine.play('win'); saveGame();
-  document.getElementById('spin-res').innerText = `You Won: ${win.txt}`;
-};
-
-document.getElementById('btn-box').onclick = () => {
-  openFeatureModal("🎁 Eco Mystery Box", `
-    <p style="font-size:0.85rem; margin-bottom:10px;">Open a Mystery Box for 40 Coins!</p>
-    <button class="btn-play" style="font-size:1rem; padding:10px 24px;" onclick="openBox()">OPEN (🪙 40)</button>
-    <p id="box-res" style="margin-top:10px; font-weight:bold; color:#2ecc71;"></p>
-  `);
-};
-window.openBox = () => {
-  if (state.coins < 40) { document.getElementById('box-res').innerText = "Not enough coins!"; return; }
-  state.coins -= 40;
-  const reward = 60 + Math.floor(Math.random() * 90);
-  state.coins += reward;
-  AudioEngine.play('win'); saveGame();
-  document.getElementById('box-res').innerText = `Found +${reward} Coins! 🎉`;
-};
-
-document.getElementById('btn-rank').onclick = () => {
-  const code = btoa(JSON.stringify(state));
-  openFeatureModal("🏆 Eco Champions & Save", `
-    <p style="font-size:0.82rem; color:#f1c40f;">🔥 Daily Streak: Day ${state.streak}</p>
-    <div style="text-align:left; font-size:0.8rem; background:rgba(0,0,0,0.3); padding:8px; border-radius:8px; margin:8px 0;">
-      1. 🥇 NatureHero — 1,420 🍎<br>
-      2. 🥈 GreenQueen — 980 🍎<br>
-      3. 🥉 <b>You (EcoSaver) — ${state.totalSold} 🍎</b>
-    </div>
-    <p style="font-size:0.75rem;">Save Code (Copy or Paste to Restore):</p>
-    <textarea id="save-code-box">${code}</textarea>
-    <button class="speed-btn" style="margin-top:6px;" onclick="importSaveCode()">📥 Load Code</button>
-  `);
-};
-window.importSaveCode = () => {
-  try {
-    const raw = document.getElementById('save-code-box').value.trim();
-    Object.assign(state, JSON.parse(atob(raw)));
-    saveGame(); setupLevel(); closeFeatureModal();
-    alert("Save loaded successfully!");
-  } catch(e) { alert("Invalid Save Code!"); }
-};
-
-/* ================= MAIN GAME LOOP ================= */
-function loop(now) {
-  const dt = Math.min(0.05, (now - lastTime) / 1000);
-  lastTime = now;
-  update(dt);
-  draw();
-  requestAnimationFrame(loop);
-}
-requestAnimationFrame(loop);
-</script>
+    let lastTime = performance.now();
+    function loop(now) {
+      const dt = Math.min(0.05, (now - lastTime) / 1000);
+      lastTime = now;
+      update(dt);
+      draw(now);
+      requestAnimationFrame(loop);
+    }
+  </script>
 </body>
 </html>
